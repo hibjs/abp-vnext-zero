@@ -1,0 +1,77 @@
+variables:
+  VERSION: "0.1-patch"
+  NAMESPACE: "abp-zero"
+
+stages:
+  - test
+  - build
+  - deploy
+
+# publish, build and push image
+.build_script_template: &build_script_definition
+  script:
+    - dotnet publish -c Release -o ./publish/
+    - docker build . -t $REGISTRY_IMAGE
+    - docker push $REGISTRY_IMAGE
+    - docker rmi $REGISTRY_IMAGE
+  allow_failure: false
+
+# deploy script for after k8s deploy then delete k8s config secret and save deployment yaml file as artifacts.
+.deploy_template: &deploy_definition
+  after_script:
+    - rm -rf kubeconfig.yaml
+  allow_failure: false
+  artifacts:
+    paths:
+      - deployment.yaml
+    when: on_success
+    expire_in: 30 days
+
+# k8s apply
+.deploy_script_template: &deploy_script_definition
+  - envsubst < k8s/deployment.yaml > deployment.yaml
+  - kubectl --kubeconfig=kubeconfig.yaml apply -f deployment.yaml
+
+# local variables
+.local_variables_template: &local_variables_definition
+  CORS_ORIGINS: "http://localhost:4200"
+
+# build push image to local container registry if math dev branch
+before_script:
+  - |
+    if [ "$CI_COMMIT_REF_NAME" == "dev" ]; then
+      export TAG="$VERSION-$(date +%Y%m%d)-$CI_COMMIT_SHORT_SHA"
+      export REGISTRY_IMAGE="registry.docker.io/$CI_PROJECT_NAME:$TAG"
+    else
+      export TAG="rel-$VERSION"
+      export REGISTRY_IMAGE="registry.gitlab.com/$CI_PROJECT_NAME:$TAG"
+    fi
+  - echo $REGISTRY_IMAGE
+
+build-image-local:
+  stage: build
+  variables: *local_variables_definition
+  <<: *build_script_definition
+  tags:
+    - test
+    - shell
+  only:
+    - dev
+
+deploy-to-staging:
+  stage: deploy
+  variables: *local_variables_definition
+  script:
+    - cat $TEST_KUBE_CONFIG > kubeconfig.yaml
+    - *deploy_script_definition
+  <<: *deploy_definition
+  tags:
+    - test
+    - shell
+  dependencies:
+    - build-image-local
+  only:
+    - dev
+  environment:
+    name: test
+    url: https://abpzero.io

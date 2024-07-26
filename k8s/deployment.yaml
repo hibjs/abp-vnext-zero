@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: $CI_PROJECT_NAME-config
+  namespace: $NAMESPACE
+data:
+  appsettings.json: |-
+    {
+      "App": {
+        "SelfUrl": "http://[*]:80",
+        "CorsOrigins": "$CORS_ORIGINS"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $CI_PROJECT_NAME
+  namespace: $NAMESPACE
+spec:
+  selector:
+    matchLabels:
+      app: $CI_PROJECT_NAME
+  template:
+    metadata:
+      labels:
+        app: $CI_PROJECT_NAME
+    spec:
+      containers:
+        - name: $CI_PROJECT_NAME
+          image: $REGISTRY_IMAGE
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/appsettings.json
+              subPath: appsettings.json
+              name: app-settings
+      imagePullSecrets:
+        - name: gitlab-secret
+      volumes:
+        - name: app-settings
+          configMap:
+            name: $CI_PROJECT_NAME-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $CI_PROJECT_NAME
+  namespace: $NAMESPACE
+spec:
+  selector:
+    app: $CI_PROJECT_NAME
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

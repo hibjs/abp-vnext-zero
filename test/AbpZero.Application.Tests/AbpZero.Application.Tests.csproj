@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>AbpZero</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\AbpZero.Application\AbpZero.Application.csproj" />
+        <ProjectReference Include="..\AbpZero.Domain.Tests\AbpZero.Domain.Tests.csproj" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    </ItemGroup>
+
+</Project>

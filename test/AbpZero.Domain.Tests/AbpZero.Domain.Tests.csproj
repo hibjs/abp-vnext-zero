@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>AbpZero</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+        <ProjectReference Include="..\AbpZero.EntityFrameworkCore.Tests\AbpZero.EntityFrameworkCore.Tests.csproj" />
+    </ItemGroup>
+
+</Project>
